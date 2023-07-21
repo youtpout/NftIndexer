@@ -16,6 +16,10 @@ namespace NftIndexer.Entities
         public long TokenId { get; set; }
         public string From { get; set; }
         public string To { get; set; }
+        /// <summary>
+        /// Transfer, Mint, Uri, Burn
+        /// </summary>
+        public string EventType { get; set; }
         public string? Uri { get; set; }
         /// <summary>
         /// Metadatas of the nft obtained during this transfer event
@@ -31,7 +35,7 @@ namespace NftIndexer.Entities
         public long BlockHash { get; set; }
         public string TransactionHash { get; set; }
         public long TransactionIndex { get; set; }
-
+        public long LogIndex { get; set; }
 
         public virtual Token Token { get; set; }
     }
