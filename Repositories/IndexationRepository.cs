@@ -24,14 +24,16 @@ namespace NftIndexer.Repositories
         private readonly ILogger<IndexationRepository> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly Interfaces.IContractRepository _contractRepository;
+        private readonly NftIndexerContext _dbContext;
 
-        public IndexationRepository(IConfiguration configuration, IServiceScopeFactory serviceScopeFactory, ILogger<IndexationRepository> logger,
+
+        public IndexationRepository(IConfiguration configuration, NftIndexerContext dbContext, ILogger<IndexationRepository> logger,
             Interfaces.IContractRepository contractRepository)
         {
             _configuration = configuration;
             _ipfsGateway = _configuration["IpfsGateway"];
             _logger = logger;
-            _serviceScopeFactory = serviceScopeFactory;
+            _dbContext = dbContext;
             _contractRepository = contractRepository;
             var url = _configuration["RpcUrl"];
             // private key from nethereum exemple don't use it as personnal wallet
@@ -43,73 +45,93 @@ namespace NftIndexer.Repositories
 
         public async Task<bool> SaveERC721(List<EventLog<TransferEventDTO>> events)
         {
-            using (var scope = _serviceScopeFactory.CreateScope())
+
+            var listAddress = events.Select(x => x.Log.Address.ToLower()).Distinct();
+            List<TokenHistory> histories = new List<TokenHistory>();
+            var allContracts = await _dbContext.Contracts.Where(l => listAddress.Contains(l.Address)).ToListAsync();
+
+
+            var newAddressContracts = listAddress.Where(l => !allContracts.Any(x => x.Address == l)).ToList();
+            var erc721Service = new ERC721Service(_web3.Eth);
+
+            var newTokens = new List<Token>();
+            var updateTokens = new List<Token>();
+            var newHistories = new List<TokenHistory>();
+            var newContracts = new List<Entities.Contract>();
+
+            await Parallel.ForEachAsync(newAddressContracts, async (address, canc) =>
+             {
+                 var contractService = erc721Service.GetContractService(address);
+                 string name = string.Empty;
+                 string symbol = string.Empty;
+                 try
+                 {
+                     name = await contractService.NameQueryAsync();
+                     symbol = await contractService.SymbolQueryAsync();
+                 }
+                 catch (Exception ex)
+                 {
+                     _logger.LogError(ex, $"Error Get Name or Symbol contract {address}");
+                 }
+                 var findContract = new Entities.Contract() { Address = address, ContractType = "ERC721", Name = name, Symbol = symbol };
+                 newContracts.Add(findContract);
+
+             });
+
+
+            // add new contract to database
+            newContracts.ForEach(con =>
             {
-                var _dbContext = scope.ServiceProvider.GetService<NftIndexerContext>();
-                var listAddress = events.Select(x => x.Log.Address.ToLower());
-                List<TokenHistory> histories = new List<TokenHistory>();
-                var allContracts = await _dbContext.Contracts.Where(l => listAddress.Contains(l.Address)).ToListAsync();
-                var allTokens = await _dbContext.Tokens.Where(l => listAddress.Contains(l.Contract.Address)).ToListAsync();
+                _dbContext.Contracts.Add(con);
+                _dbContext.SaveChanges();
+            });
 
-                var newContract = new List<Entities.Contract>();
-                var erc721Service = new ERC721Service(_web3.Eth);
+            allContracts = await _dbContext.Contracts.Where(l => listAddress.Contains(l.Address)).ToListAsync();
+            var allTokens = await _dbContext.Tokens.Where(l => listAddress.Contains(l.Contract.Address)).ToListAsync();
 
-                var newTokens = new List<Token>();
-                var newHistories = new List<TokenHistory>();
 
-                events.ForEach(async (item) =>
+            await Parallel.ForEachAsync(events, async (item, canc) =>
+            {
+                var address = item.Log.Address.ToLower();
+                var findContract = newContracts.Where(a => a.Address == address).FirstOrDefault();
+
+                var contractService = erc721Service.GetContractService(address);
+
+                var findToken = allTokens.Where(a => a.Contract.Address == address && a.TokenId == item.Event.TokenId).FirstOrDefault();
+                if (findToken == null)
                 {
-                    var address = item.Log.Address.ToLower();
-                    var findContract = allContracts.Where(a => a.Address == address).FirstOrDefault();
+                    var contract = allContracts.Where(x => x.Address == address).First();
+                    findToken = new Token() { TokenId = item.Event.TokenId, ContractId = contract.Id, Contract = contract };
 
-                    var contractService = erc721Service.GetContractService(item.Log.Address);
-                    if (findContract == null)
-                    {
-                        string name = string.Empty;
-                        string symbol = string.Empty;
-                        try
-                        {
-                            name = await contractService.NameQueryAsync();
-                            symbol = await contractService.SymbolQueryAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, $"Error Get Name or Symbol contract {address}");
-                        }
-                        findContract = new Entities.Contract() { Address = address, ContractType = "ERC721", Name = name, Symbol = symbol };
+                    newTokens.Add(findToken);
+                }
+                else
+                {
+                    updateTokens.Add(findToken);
+                }
 
-                        newContract.Add(findContract);
-                        allContracts.Add(findContract);
-                    }
+                // get uri for the token id at the block event
+                var uri = await contractService.TokenURIQueryAsync(item.Event.TokenId, new BlockParameter(item.Log.BlockNumber));
+                findToken.Uri = uri;
 
+                var history = new TokenHistory()
+                {
+                    Amount = 1,
+                    BlockHash = item.Log.BlockHash,
+                    BlockNumber = ((long)item.Log.BlockNumber.Value),
+                    From = item.Event.From.ToLower(),
+                    To = item.Event.To.ToLower(),
+                    Time = DateTime.UtcNow,
+                    LogIndex = ((long)item.Log.LogIndex.Value),
+                    Uri = uri,
+                    TransactionHash = item.Log.TransactionHash,
+                    TransactionIndex = ((long)item.Log.TransactionIndex.Value),
+                    Token = findToken
+                };
+                if (!string.IsNullOrWhiteSpace(uri))
+                {
 
-                    var findToken = allTokens.Where(a => a.Contract.Address == address && a.TokenId == item.Event.TokenId).FirstOrDefault();
-                    if (findToken == null)
-                    {
-                        findToken = new Token() { TokenId = item.Event.TokenId, Contract = findContract };
-
-                        newTokens.Add(findToken);
-                    }
-
-                    // get uri for the token id at the block event
-                    var uri = await contractService.TokenURIQueryAsync(item.Event.TokenId, new BlockParameter(item.Log.BlockNumber));
                     var metadata = await GetMetadata(uri);
-                    findToken.Uri = uri;
-
-                    var history = new TokenHistory()
-                    {
-                        Amount = 1,
-                        BlockHash = item.Log.BlockHash,
-                        BlockNumber = ((long)item.Log.BlockNumber.Value),
-                        From = item.Event.From.ToLower(),
-                        To = item.Event.To.ToLower(),
-                        Time = DateTime.Now,
-                        LogIndex = ((long)item.Log.LogIndex.Value),
-                        Uri = uri,
-                        TransactionHash = item.Log.TransactionHash,
-                        TransactionIndex = ((long)item.Log.TransactionIndex.Value),
-                        Token = findToken
-                    };
                     if (metadata.Item2)
                     {
                         history.Metadatas = metadata.Item1;
@@ -119,29 +141,47 @@ namespace NftIndexer.Repositories
                     {
                         history.Error = metadata.Item1;
                     }
+                }
 
-                    if (history.From == addressZero)
-                    {
-                        history.EventType = "Mint";
-                    }
-                    else if (history.To == addressZero)
-                    {
-                        history.EventType = "Burn";
-                    }
-                    else
-                    {
-                        history.EventType = "Transfer";
-                    }
-                    findToken.TokenHistories.Add(history);
 
-                    //_logger.LogInformation($"Erc721 token id {item.Event.TokenId} uri {uri} metadata {metadata}");
-                });
-
-                newContract.ForEach(async con =>
+                if (history.From == addressZero)
                 {
-                    await _contractRepository.Create(con);
-                });
-            }
+                    history.EventType = "Mint";
+                }
+                else if (history.To == addressZero)
+                {
+                    history.EventType = "Burn";
+                }
+                else
+                {
+                    history.EventType = "Transfer";
+                }
+                history.Token = findToken;
+                newHistories.Add(history);
+
+                //_logger.LogInformation($"Erc721 token id {item.Event.TokenId} uri {uri} metadata {metadata}");
+            });
+
+            newTokens.ForEach(con =>
+            {
+                _dbContext.Tokens.Add(con);
+                _dbContext.SaveChanges();
+            });
+
+            updateTokens.ForEach(con =>
+            {
+                _dbContext.Tokens.Update(con);
+                _dbContext.SaveChanges();
+            });
+
+            newHistories.ForEach(con =>
+            {
+                var token = _dbContext.Tokens.Where(x => x.TokenId == con.Token.TokenId && x.Contract.Address == con.Token.Contract.Address).First();
+                con.TokenId = token.Id;
+                _dbContext.TokenHistories.Add(con);
+                _dbContext.SaveChanges();
+            });
+
 
             return true;
         }
