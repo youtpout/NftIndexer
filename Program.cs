@@ -1,11 +1,26 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using NftIndexer.Entities;
+using NftIndexer.Interfaces;
+using NftIndexer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+builder.Services.AddScoped<IIndexationService, IndexationService>();
+
+builder.Services.AddHostedService<IndexationBackgroundTaskService>();
+
 builder.Services.AddControllersWithViews();
+
+// AutoMapper
+var configuration = new MapperConfiguration(cfg =>
+{
+  
+});
+var mapper = configuration.CreateMapper();
+builder.Services.AddSingleton(mapper);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
