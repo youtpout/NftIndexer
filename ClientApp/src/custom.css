@@ -46,15 +46,17 @@ code {
 
     .nft-card img {
         border: 1px solid pink;
-        height: 200px;
+        height: 180px;
+        margin-bottom: 5px;
         text-overflow: ellipsis;
         max-width: 300px;
     }
 
     .nft-card .description {
         display: flex;
-        width:300px;
+        width: 300px;
         flex-direction: column;
         justify-content: flex-start;
         align-items: flex-start;
+        font-size: 0.8rem;
     }

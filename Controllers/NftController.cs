@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using Microsoft.AspNetCore.Mvc;
+using NftIndexer.Dtos;
 using NftIndexer.Entities;
 using NftIndexer.Interfaces;
 using static System.Net.Mime.MediaTypeNames;
@@ -23,9 +24,15 @@ public class NftController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<List<Token>> Get()
+    public async Task<PaginationDto> Get()
     {
         return await _tokenService.GetToken();
+    }
+
+    [HttpGet("GetWithParameter")]
+    public async Task<PaginationDto> GetWithParameter(int skip = 0, int take = 10, string address = "", string owner = "", bool history = false)
+    {
+        return await _tokenService.GetToken(skip, take, address, owner, history);
     }
 
     //[HttpGet("GetImage")]

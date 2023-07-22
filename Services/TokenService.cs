@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore;
+using NftIndexer.Dtos;
 using NftIndexer.Entities;
 using NftIndexer.Interfaces;
 
@@ -15,9 +16,9 @@ namespace NftIndexer.Services
         }
 
 
-        public async Task<List<Token>> GetToken(int skip = 0, int take = 10, string address = "all", bool history = false)
+        public async Task<PaginationDto> GetToken(int skip = 0, int take = 10, string address = "", string owner = "", bool history = false)
         {
-            List<Token> tokens = new List<Token>();
+            List<TokenDto> tokens = new List<TokenDto>();
             if (take > 100 || take < 1)
             {
                 take = 100;
@@ -28,25 +29,54 @@ namespace NftIndexer.Services
                 skip = 0;
             }
 
-            IQueryable<Token> filter = _dbContext.Tokens.OrderByDescending(x => x.Id);
+            IQueryable<Token> filter = _dbContext.Tokens.Include(x => x.Contract).Include(x => x.TokenHistories).OrderByDescending(x => x.Id);
 
-            if (address != "all")
+            if (!string.IsNullOrWhiteSpace(address))
             {
                 string adr = address.ToLower();
                 filter = filter.Where(x => x.Contract.Address.Contains(adr));
             }
 
-            if (history)
+            if (!string.IsNullOrWhiteSpace(owner))
             {
-                filter = filter.Include(x => x.TokenHistories);
+                string own = owner.ToLower();
+                filter = filter.Where(x => x.TokenHistories.OrderByDescending(x => x.BlockNumber).ThenByDescending(x => x.TransactionIndex).First().To == owner);
             }
 
-            tokens = filter.Skip(skip).Take(take).ToList();
+            var count = await filter.CountAsync();
 
-            return tokens;
+            tokens = filter.Skip(skip).Take(take).ToList().Select((x, index) =>
+
+                new TokenDto()
+                {
+                    Name = x.Contract.Name ?? string.Empty,
+                    Symbol = x.Contract.Symbol ?? string.Empty,
+                    Address = x.Contract.Address,
+                    ContractType = x.Contract.ContractType,
+                    Metadatas = x.Metadatas,
+                    Owner = x.TokenHistories.OrderByDescending(x => x.BlockNumber).ThenByDescending(x => x.TransactionIndex).First().To ?? string.Empty,
+                    TokenId = x.TokenId,
+                    Uri = x.Uri,
+                    TokenHistories = !history ? new List<TokenHistoryDto>() : x.TokenHistories.Select(z => new TokenHistoryDto()
+                    {
+                        Amount = z.Amount,
+                        From = z.From,
+                        To = z.To,
+                        EventType = z.EventType,
+                        Uri = z.EventType,
+                        BlockNumber = z.BlockNumber,
+                        BlockHash = z.BlockHash,
+                        TransactionHash = z.TransactionHash,
+                        TransactionIndex = z.TransactionIndex,
+                        LogIndex = z.LogIndex
+
+                    }).ToList()
+                }).ToList();
+
+            return new PaginationDto() { Skip = skip, Take = take, Total = count, Tokens = tokens };
         }
 
-        
+
     }
 }
 

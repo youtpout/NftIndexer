@@ -21,11 +21,16 @@ const Home = () => {
     return (
         <div className="home">
 
-            {nfts.map((nft, index) =>
+            {nfts?.tokens?.map((nft, index) =>
                 <div className="nft-card" key={index}>
                     <AsyncImage {...nft} />
 
-                    <span title={nft.tokenId}> Token Id : {nft.tokenId?.substring(0, 24) + ((nft.tokenId?.length > 25) ? "..." : "")}</span>
+                    <div className="description info">
+                        <span title={nft.tokenId}>Token Id : {nft.tokenId?.substring(0, 30) + ((nft.tokenId?.length > 30) ? "..." : "")}</span>
+                        <span title={nft.address}>Address :  {nft.address?.substring(0, 30) + ((nft.address?.length > 30) ? "..." : "")}</span>
+                        <span title={nft.owner}>Owner : {nft.owner?.substring(0, 30) + ((nft.owner?.length > 30) ? "..." : "")}</span>
+
+                    </div>
                     <MetaDescription {...nft} />
 
                 </div>)}
