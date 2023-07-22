@@ -1,0 +1,183 @@
+﻿using System;
+using System.Linq.Expressions;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Nethereum.BlockchainProcessing.BlockStorage.Repositories;
+using Nethereum.Contracts;
+using Nethereum.Contracts.Standards.ERC721;
+using Nethereum.Contracts.Standards.ERC721.ContractDefinition;
+using Nethereum.RPC.Eth.DTOs;
+using Nethereum.Web3;
+using Nethereum.Web3.Accounts;
+using NftIndexer.Entities;
+using NftIndexer.Interfaces;
+
+namespace NftIndexer.Repositories
+{
+    public class IndexationRepository : IIndexationRepository
+    {
+        private const string addressZero = "0x0000000000000000000000000000000000000000";
+        private readonly IConfiguration _configuration;
+        private readonly Web3 _web3;
+        private readonly string _ipfsGateway;
+        private readonly ILogger<IndexationRepository> _logger;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly Interfaces.IContractRepository _contractRepository;
+
+        public IndexationRepository(IConfiguration configuration, IServiceScopeFactory serviceScopeFactory, ILogger<IndexationRepository> logger,
+            Interfaces.IContractRepository contractRepository)
+        {
+            _configuration = configuration;
+            _ipfsGateway = _configuration["IpfsGateway"];
+            _logger = logger;
+            _serviceScopeFactory = serviceScopeFactory;
+            _contractRepository = contractRepository;
+            var url = _configuration["RpcUrl"];
+            // private key from nethereum exemple don't use it as personnal wallet
+            var privateKey = "0xb5b1870957d373ef0eeffecc6e4812c0fd08f554b37b233526acc331bf1544f7";
+            var account = new Account(privateKey);
+            _web3 = new Web3(account, url);
+        }
+
+
+        public async Task<bool> SaveERC721(List<EventLog<TransferEventDTO>> events)
+        {
+            using (var scope = _serviceScopeFactory.CreateScope())
+            {
+                var _dbContext = scope.ServiceProvider.GetService<NftIndexerContext>();
+                var listAddress = events.Select(x => x.Log.Address.ToLower());
+                List<TokenHistory> histories = new List<TokenHistory>();
+                var allContracts = await _dbContext.Contracts.Where(l => listAddress.Contains(l.Address)).ToListAsync();
+                var allTokens = await _dbContext.Tokens.Where(l => listAddress.Contains(l.Contract.Address)).ToListAsync();
+
+                var newContract = new List<Entities.Contract>();
+                var erc721Service = new ERC721Service(_web3.Eth);
+
+                var newTokens = new List<Token>();
+                var newHistories = new List<TokenHistory>();
+
+                events.ForEach(async (item) =>
+                {
+                    var address = item.Log.Address.ToLower();
+                    var findContract = allContracts.Where(a => a.Address == address).FirstOrDefault();
+
+                    var contractService = erc721Service.GetContractService(item.Log.Address);
+                    if (findContract == null)
+                    {
+                        string name = string.Empty;
+                        string symbol = string.Empty;
+                        try
+                        {
+                            name = await contractService.NameQueryAsync();
+                            symbol = await contractService.SymbolQueryAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, $"Error Get Name or Symbol contract {address}");
+                        }
+                        findContract = new Entities.Contract() { Address = address, ContractType = "ERC721", Name = name, Symbol = symbol };
+
+                        newContract.Add(findContract);
+                        allContracts.Add(findContract);
+                    }
+
+
+                    var findToken = allTokens.Where(a => a.Contract.Address == address && a.TokenId == item.Event.TokenId).FirstOrDefault();
+                    if (findToken == null)
+                    {
+                        findToken = new Token() { TokenId = item.Event.TokenId, Contract = findContract };
+
+                        newTokens.Add(findToken);
+                    }
+
+                    // get uri for the token id at the block event
+                    var uri = await contractService.TokenURIQueryAsync(item.Event.TokenId, new BlockParameter(item.Log.BlockNumber));
+                    var metadata = await GetMetadata(uri);
+                    findToken.Uri = uri;
+
+                    var history = new TokenHistory()
+                    {
+                        Amount = 1,
+                        BlockHash = item.Log.BlockHash,
+                        BlockNumber = ((long)item.Log.BlockNumber.Value),
+                        From = item.Event.From.ToLower(),
+                        To = item.Event.To.ToLower(),
+                        Time = DateTime.Now,
+                        LogIndex = ((long)item.Log.LogIndex.Value),
+                        Uri = uri,
+                        TransactionHash = item.Log.TransactionHash,
+                        TransactionIndex = ((long)item.Log.TransactionIndex.Value),
+                        Token = findToken
+                    };
+                    if (metadata.Item2)
+                    {
+                        history.Metadatas = metadata.Item1;
+                        findToken.Metadatas = metadata.Item1;
+                    }
+                    else
+                    {
+                        history.Error = metadata.Item1;
+                    }
+
+                    if (history.From == addressZero)
+                    {
+                        history.EventType = "Mint";
+                    }
+                    else if (history.To == addressZero)
+                    {
+                        history.EventType = "Burn";
+                    }
+                    else
+                    {
+                        history.EventType = "Transfer";
+                    }
+                    findToken.TokenHistories.Add(history);
+
+                    //_logger.LogInformation($"Erc721 token id {item.Event.TokenId} uri {uri} metadata {metadata}");
+                });
+
+                newContract.ForEach(async con =>
+                {
+                    await _contractRepository.Create(con);
+                });
+            }
+
+            return true;
+        }
+
+        private async Task<Tuple<string, bool>> GetMetadata(string uri)
+        {
+            try
+            {
+                using (HttpClient client = new HttpClient())
+                {
+
+                    string url = uri.Replace("ipfs://", _ipfsGateway);
+                    var responseMessage = await client.GetAsync(url);
+
+
+                    if (responseMessage.IsSuccessStatusCode)
+                    {
+                        var responseContent = await responseMessage.Content.ReadAsStringAsync();
+                        return new Tuple<string, bool>(responseContent, true);
+                    }
+                    else
+                    {
+                        var responseContent = await responseMessage.Content.ReadAsStringAsync();
+                        return new Tuple<string, bool>(responseContent, false);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error GetMetadata uri {uri}");
+                return new Tuple<string, bool>(ex.Message, false);
+            }
+
+
+        }
+
+    }
+}
+

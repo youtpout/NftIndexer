@@ -3,11 +3,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NftIndexer.Entities
 {
-	public class SyncInfo
-	{
-		public SyncInfo()
-		{
-		}
+    public class SyncInfo
+    {
+        public SyncInfo()
+        {
+        }
 
         [Key]
         public long Id { get; set; }

@@ -9,13 +9,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddScoped<IIndexationService, IndexationService>();
 
-builder.Services.AddScoped<IRepositoryBase<Contract>, RepositoryBase<Contract>>();
+
+builder.Services.AddScoped<IContractRepository,ContractRepository>();
 builder.Services.AddScoped<IRepositoryBase<Token>, RepositoryBase<Token>>();
 builder.Services.AddScoped<IRepositoryBase<TokenHistory>, RepositoryBase<TokenHistory>>();
 builder.Services.AddScoped<ISyncRepository, SyncRepository>();
+builder.Services.AddScoped<IIndexationRepository, IndexationRepository>();
 
+builder.Services.AddScoped<IIndexationService, IndexationService>();
 
 builder.Services.AddHostedService<IndexationBackgroundTaskService>();
 
@@ -44,7 +46,6 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
 
     var context = services.GetRequiredService<NftIndexerContext>();
-    context.Database.EnsureCreated();
 
     // migrate any database changes on startup (includes initial db creation)
     context.Database.Migrate();
