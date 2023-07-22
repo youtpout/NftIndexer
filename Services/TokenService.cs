@@ -28,7 +28,7 @@ namespace NftIndexer.Services
                 skip = 0;
             }
 
-            IQueryable<Token> filter = _dbContext.Tokens.OrderBy(x => x.Id);
+            IQueryable<Token> filter = _dbContext.Tokens.OrderByDescending(x => x.Id);
 
             if (address != "all")
             {

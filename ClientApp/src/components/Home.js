@@ -19,12 +19,15 @@ const Home = () => {
 
 
     return (
-        <div>
+        <div className="home">
 
             {nfts.map((nft, index) =>
                 <div className="nft-card" key={index}>
-                    <span title={nft.tokenId}>{nft.tokenId.substring(0, 24) + ((nft.tokenId?.length > 25) ? "..." : "")}</span>
                     <AsyncImage {...nft} />
+
+                    <span title={nft.tokenId}> Token Id : {nft.tokenId?.substring(0, 24) + ((nft.tokenId?.length > 25) ? "..." : "")}</span>
+                    <MetaDescription {...nft} />
+
                 </div>)}
         </div>
     );
@@ -47,7 +50,28 @@ const AsyncImage = (props) => {
     }, [props.metadatas]);
     if (loadedSrc) {
         return (
-            <img height="100" {...loadedSrc} />
+            <img  {...loadedSrc} />
+        );
+    }
+    return null;
+};
+
+const MetaDescription = (props) => {
+    const [meta, setMeta] = React.useState(null);
+    React.useEffect(() => {
+        setMeta(null);
+        if (props.metadatas) {
+
+            const datas = JSON.parse(props.metadatas);
+            setMeta(datas);
+        }
+    }, [props.metadatas]);
+    if (meta) {
+        return (
+            <div className="description">
+                <span>{meta.name}</span>
+                <span title={meta.description}>  {meta.description?.substring(0, 60) + ((meta.description?.length > 60) ? "..." : "")}</span>
+            </div>
         );
     }
     return null;

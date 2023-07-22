@@ -129,13 +129,16 @@ namespace NftIndexer.Repositories
                     TransactionIndex = ((long)item.Log.TransactionIndex.Value),
                     Token = findToken
                 };
-                if (!string.IsNullOrWhiteSpace(uri))
+                // we index metadatas only the first time for the moment
+                // the process take lot of time
+                if (string.IsNullOrWhiteSpace(findToken.Metadatas) && !string.IsNullOrWhiteSpace(uri))
                 {
 
                     var metadata = await GetMetadata(uri);
                     if (metadata.Item2)
                     {
-                        history.Metadatas = metadata.Item1;
+                        // we store only on token table for the moment
+                        //history.Metadatas = metadata.Item1;
                         findToken.Metadatas = metadata.Item1;
                     }
                     else
