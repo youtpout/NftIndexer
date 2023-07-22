@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using NftIndexer;
 using NftIndexer.Entities;
 using NftIndexer.Interfaces;
 using NftIndexer.Repositories;
@@ -21,6 +22,19 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IIndexationService, IndexationService>();
 
 builder.Services.AddHostedService<IndexationBackgroundTaskService>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        });
+});
+builder.Services.AddControllersWithViews().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new BigIntegerJsonConverter());
+});
 
 builder.Services.AddControllersWithViews();
 

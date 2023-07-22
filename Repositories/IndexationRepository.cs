@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using System.Net.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -192,7 +193,7 @@ namespace NftIndexer.Repositories
             {
                 using (HttpClient client = new HttpClient())
                 {
-
+                    client.Timeout = TimeSpan.FromSeconds(2);
                     string url = uri.Replace("ipfs://", _ipfsGateway);
                     var responseMessage = await client.GetAsync(url);
 

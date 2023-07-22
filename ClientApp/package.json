@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@types/jest": "^29.5.3",
+    "@types/node": "^20.4.4",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
     "bootstrap": "^5.2.3",
     "http-proxy-middleware": "^2.0.6",
     "jquery": "^3.6.4",
@@ -15,6 +19,7 @@
     "react-scripts": "^5.0.1",
     "reactstrap": "^9.1.9",
     "rimraf": "^5.0.0",
+    "ts-node": "^10.9.1",
     "web-vitals": "^3.3.1",
     "workbox-background-sync": "^6.5.4",
     "workbox-broadcast-update": "^6.5.4",
