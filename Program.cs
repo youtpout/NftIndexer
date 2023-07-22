@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using NftIndexer.Entities;
 using NftIndexer.Interfaces;
+using NftIndexer.Repositories;
 using NftIndexer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IIndexationService, IndexationService>();
 
+builder.Services.AddScoped<IRepositoryBase<Contract>, RepositoryBase<Contract>>();
+builder.Services.AddScoped<IRepositoryBase<Token>, RepositoryBase<Token>>();
+builder.Services.AddScoped<IRepositoryBase<TokenHistory>, RepositoryBase<TokenHistory>>();
+builder.Services.AddScoped<ISyncRepository, SyncRepository>();
+
+
 builder.Services.AddHostedService<IndexationBackgroundTaskService>();
 
 builder.Services.AddControllersWithViews();
@@ -17,7 +24,7 @@ builder.Services.AddControllersWithViews();
 // AutoMapper
 var configuration = new MapperConfiguration(cfg =>
 {
-  
+
 });
 var mapper = configuration.CreateMapper();
 builder.Services.AddSingleton(mapper);

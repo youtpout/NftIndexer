@@ -7,7 +7,8 @@ namespace NftIndexer.Entities
 	{
 		public Contract()
 		{
-		}
+            Tokens = new HashSet<Token>();
+        }
 
         [Key]
         public long Id { get; set; }
@@ -18,6 +19,8 @@ namespace NftIndexer.Entities
         public string? Name { get; set; }
         public string? Symbol { get; set; }
         public string? Uri { get; set; }
+
+        public virtual ICollection<Token>? Tokens { get; set; }
     }
 }
 

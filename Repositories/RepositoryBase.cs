@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using NftIndexer.Entities;
 using NftIndexer.Interfaces;
@@ -38,6 +39,18 @@ namespace NftIndexer.Repositories
         public async virtual Task<T> FindById(int id)
         {
             var ent = await entities.FindAsync(id);
+            return ent;
+        }
+
+        public async virtual Task<T> FindWithParameter(Expression<Func<T,bool>> parameter)
+        {
+            var ent = await entities.FirstOrDefaultAsync(parameter);
+            return ent;
+        }
+
+        public virtual IQueryable<T> GetAsQueryable()
+        {
+            var ent = entities.AsQueryable();
             return ent;
         }
 

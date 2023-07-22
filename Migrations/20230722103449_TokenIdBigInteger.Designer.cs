@@ -3,6 +3,7 @@ using System;
 using System.Numerics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NftIndexer.Entities;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NftIndexer.Migrations
 {
     [DbContext(typeof(NftIndexerContext))]
-    partial class NftIndexerContextModelSnapshot : ModelSnapshot
+    [Migration("20230722103449_TokenIdBigInteger")]
+    partial class TokenIdBigInteger
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -78,6 +81,7 @@ namespace NftIndexer.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Error")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("error");
 
@@ -146,9 +150,8 @@ namespace NftIndexer.Migrations
                         .HasColumnType("bigint")
                         .HasColumnName("amount");
 
-                    b.Property<string>("BlockHash")
-                        .IsRequired()
-                        .HasColumnType("text")
+                    b.Property<long>("BlockHash")
+                        .HasColumnType("bigint")
                         .HasColumnName("block_hash");
 
                     b.Property<long>("BlockNumber")
@@ -156,6 +159,7 @@ namespace NftIndexer.Migrations
                         .HasColumnName("block_number");
 
                     b.Property<string>("Error")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("error");
 
@@ -215,7 +219,7 @@ namespace NftIndexer.Migrations
             modelBuilder.Entity("NftIndexer.Entities.Token", b =>
                 {
                     b.HasOne("NftIndexer.Entities.Contract", "Contract")
-                        .WithMany("Tokens")
+                        .WithMany()
                         .HasForeignKey("ContractId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
@@ -234,11 +238,6 @@ namespace NftIndexer.Migrations
                         .HasConstraintName("fk_token_histories_tokens_token_id");
 
                     b.Navigation("Token");
-                });
-
-            modelBuilder.Entity("NftIndexer.Entities.Contract", b =>
-                {
-                    b.Navigation("Tokens");
                 });
 
             modelBuilder.Entity("NftIndexer.Entities.Token", b =>

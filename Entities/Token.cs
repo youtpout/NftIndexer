@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
+using System.Numerics;
 
 namespace NftIndexer.Entities
 {
@@ -13,7 +14,7 @@ namespace NftIndexer.Entities
         [Key]
         public long Id { get; set; }
         public long ContractId { get; set; }
-        public long TokenId { get; set; }
+        public BigInteger TokenId { get; set; }
         public string? Uri { get; set; }
         public string? Metadatas { get; set; }
 

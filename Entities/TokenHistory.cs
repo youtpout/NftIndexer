@@ -4,15 +4,18 @@ using System.ComponentModel.DataAnnotations;
 
 namespace NftIndexer.Entities
 {
-	public class TokenHistory
+    public class TokenHistory
     {
 
-		public TokenHistory()
-		{
-		}
+        public TokenHistory()
+        {
+        }
 
         [Key]
         public long Id { get; set; }
+        /// <summary>
+        /// Id of the token in the database (not the token id onchain)
+        /// </summary>
         public long TokenId { get; set; }
         public string From { get; set; }
         public string To { get; set; }
@@ -32,10 +35,13 @@ namespace NftIndexer.Entities
         public long Amount { get; set; }
 
         public long BlockNumber { get; set; }
-        public long BlockHash { get; set; }
+        public string BlockHash { get; set; }
         public string TransactionHash { get; set; }
         public long TransactionIndex { get; set; }
         public long LogIndex { get; set; }
+
+        public DateTime Time { get; set; }
+        public string? Error { get; set; }
 
         public virtual Token Token { get; set; }
     }

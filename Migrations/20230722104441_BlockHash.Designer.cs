@@ -3,6 +3,7 @@ using System;
 using System.Numerics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NftIndexer.Entities;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NftIndexer.Migrations
 {
     [DbContext(typeof(NftIndexerContext))]
-    partial class NftIndexerContextModelSnapshot : ModelSnapshot
+    [Migration("20230722104441_BlockHash")]
+    partial class BlockHash
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -78,6 +81,7 @@ namespace NftIndexer.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Error")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("error");
 
@@ -156,6 +160,7 @@ namespace NftIndexer.Migrations
                         .HasColumnName("block_number");
 
                     b.Property<string>("Error")
+                        .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("error");
 

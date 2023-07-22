@@ -14,7 +14,7 @@ namespace NftIndexer.Entities
         public long FromBlock { get; set; }
         public long ToBlock { get; set; }
         public DateTime Time { get; set; }
-        public string Error { get; set; }
+        public string? Error { get; set; }
     }
 }
 
