@@ -111,10 +111,21 @@ namespace NftIndexer.Repositories
                     updateTokens.Add(findToken);
                 }
 
-                // get uri for the token id at the block event
-                var uri = await contractService.TokenURIQueryAsync(item.Event.TokenId, new BlockParameter(item.Log.BlockNumber));
-                findToken.Uri = uri;
+                string uri = string.Empty;
+                try
+                {
 
+                    // get uri for the token id at the block event
+                    uri = await contractService.TokenURIQueryAsync(item.Event.TokenId, new BlockParameter(item.Log.BlockNumber));
+
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error get token uri for contract {item.Log.Address} and token Id {item.Event.TokenId}");
+
+                }
+
+                findToken.Uri = uri;
                 var history = new TokenHistory()
                 {
                     Amount = 1,

@@ -5,7 +5,7 @@ import { Layout } from './components/Layout';
 import './custom.css';
 
 export default class App extends Component {
-  static displayName = App.name;
+  static displayName = "Welcome on linea NFT Indexer";
 
   render() {
     return (

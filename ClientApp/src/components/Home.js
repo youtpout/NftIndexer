@@ -16,24 +16,34 @@ const Home = () => {
         setNfts(datas);
     };
 
+    const filterByOwner = async (event) => {
+        const address = event.target.value;
+        const response = await fetch("/api/nft/GetWithParameter?owner=" + address);
+        const datas = await response.json();
+        setNfts(datas);
+    };
 
 
     return (
-        <div className="home">
+        <div>
+            <div className="filter"> <span>Filter by owner : </span>
+                <input onChange={ev => filterByOwner(ev)} type="text" placeholder="owner"></input>
+            </div>
+            <div className="home">
+                {nfts?.tokens?.map((nft, index) =>
+                    <div className="nft-card" key={index}>
+                        <AsyncImage {...nft} />
 
-            {nfts?.tokens?.map((nft, index) =>
-                <div className="nft-card" key={index}>
-                    <AsyncImage {...nft} />
+                        <div className="description info">
+                            <span title={nft.tokenId}>Token Id : {nft.tokenId?.substring(0, 30) + ((nft.tokenId?.length > 30) ? "..." : "")}</span>
+                            <span title={nft.address}>Address :  {nft.address?.substring(0, 30) + ((nft.address?.length > 30) ? "..." : "")}</span>
+                            <span title={nft.owner}>Owner : {nft.owner?.substring(0, 30) + ((nft.owner?.length > 30) ? "..." : "")}</span>
 
-                    <div className="description info">
-                        <span title={nft.tokenId}>Token Id : {nft.tokenId?.substring(0, 30) + ((nft.tokenId?.length > 30) ? "..." : "")}</span>
-                        <span title={nft.address}>Address :  {nft.address?.substring(0, 30) + ((nft.address?.length > 30) ? "..." : "")}</span>
-                        <span title={nft.owner}>Owner : {nft.owner?.substring(0, 30) + ((nft.owner?.length > 30) ? "..." : "")}</span>
+                        </div>
+                        <MetaDescription {...nft} />
 
-                    </div>
-                    <MetaDescription {...nft} />
-
-                </div>)}
+                    </div>)}
+            </div>
         </div>
     );
 };

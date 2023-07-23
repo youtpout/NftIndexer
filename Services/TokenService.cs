@@ -40,7 +40,7 @@ namespace NftIndexer.Services
             if (!string.IsNullOrWhiteSpace(owner))
             {
                 string own = owner.ToLower();
-                filter = filter.Where(x => x.TokenHistories.OrderByDescending(x => x.BlockNumber).ThenByDescending(x => x.TransactionIndex).First().To == owner);
+                filter = filter.Where(x => x.TokenHistories.OrderByDescending(x => x.BlockNumber).ThenByDescending(x => x.TransactionIndex).First().To.Contains(owner));
             }
 
             var count = await filter.CountAsync();

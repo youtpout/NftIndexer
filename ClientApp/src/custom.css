@@ -60,3 +60,15 @@ code {
         align-items: flex-start;
         font-size: 0.8rem;
     }
+
+.filter {
+    margin: 10px;
+}
+
+    .filter input {
+        width: 320px;
+        margin-left: 10px;
+        border: 1px solid black;
+        border-radius: 5px;
+        box-shadow: 5px 5px black;
+    }

@@ -26,18 +26,16 @@ namespace NftIndexer.Services
         private readonly ISyncRepository _syncInfoRepository;
         private readonly IIndexationRepository _indexationRepository;
         private readonly string _ipfsGateway;
-        private static BigInteger lastBlock = 0;
-
-
+        private static BigInteger lastBlockIndexed = 0;
 
         private static ulong startBlock = 0;
         private static ulong increment = 100;
-
+        private static ulong toBlock = 100;
 
         private readonly Web3 _web3;
 
         public IndexationService(IConfiguration configuration,
-            ILogger<IndexationService> logger,  IIndexationRepository indexationRepository, ISyncRepository syncInfoRepository)
+            ILogger<IndexationService> logger, IIndexationRepository indexationRepository, ISyncRepository syncInfoRepository)
         {
             _configuration = configuration;
             _logger = logger;
@@ -59,9 +57,23 @@ namespace NftIndexer.Services
         {
             try
             {
-                lastBlock = await _syncInfoRepository.GetLastBlockIndexed();
-                ulong startBlock = ((ulong)lastBlock) + 1;
-                ulong toBlock = startBlock + increment;
+                var latestBlockMined = await _web3.Eth.Blocks.GetBlockNumber.SendRequestAsync();
+                ulong lastMined = ((ulong)latestBlockMined.Value);
+
+                lastBlockIndexed = await _syncInfoRepository.GetLastBlockIndexed();
+                startBlock = ((ulong)lastBlockIndexed) + 1;
+                if (lastMined < startBlock)
+                {
+                    _logger.LogInformation($"No new block");
+                    return true;
+                }
+                toBlock = startBlock + increment;
+                if (toBlock > lastMined)
+                {
+                    toBlock = lastMined;
+                }
+
+                _logger.LogInformation($"From block {startBlock} to {toBlock}");
 
                 // filter erc721 transfer event
                 var allTransferEventsForContract = await FilterEventAllContracts<TransferEventDTO>(startBlock, toBlock);
@@ -82,15 +94,15 @@ namespace NftIndexer.Services
 
                 await _indexationRepository.SaveERC721(allTransferEventsForContract);
 
-                startBlock += increment;
-
                 SyncInfo info = new SyncInfo() { FromBlock = ((long)startBlock), ToBlock = ((long)toBlock), Time = DateTime.UtcNow };
                 await _syncInfoRepository.Create(info);
+
+                startBlock += increment;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "IndexData");
-                SyncInfo info = new SyncInfo() { FromBlock = ((long)startBlock), ToBlock = 0, Time = DateTime.UtcNow, Error = ex.Message };
+                SyncInfo info = new SyncInfo() { FromBlock = ((long)startBlock), ToBlock = ((long)toBlock), Time = DateTime.UtcNow, Error = ex.Message };
                 await _syncInfoRepository.Create(info);
             }
 
