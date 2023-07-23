@@ -125,7 +125,14 @@ namespace NftIndexer.Repositories
 
                 }
 
+                // postgres doesn't support null encodage utf8
+                if (uri.Contains("\u0000"))
+                {
+                    uri = string.Empty;
+                }
+
                 findToken.Uri = uri;
+
                 var history = new TokenHistory()
                 {
                     Amount = 1,
@@ -138,7 +145,8 @@ namespace NftIndexer.Repositories
                     Uri = uri,
                     TransactionHash = item.Log.TransactionHash,
                     TransactionIndex = ((long)item.Log.TransactionIndex.Value),
-                    Token = findToken
+                    Token = findToken,
+                    Metadatas = string.Empty
                 };
                 // we index metadatas only the first time for the moment
                 // the process take lot of time
@@ -146,8 +154,10 @@ namespace NftIndexer.Repositories
                 {
 
                     var metadata = await GetMetadata(uri);
-                    if (metadata.Item2)
+                    // dont save utf8 null
+                    if (metadata.Item2 && !metadata.Item1.Contains("\u0000"))
                     {
+
                         // we store only on token table for the moment
                         //history.Metadatas = metadata.Item1;
                         findToken.Metadatas = metadata.Item1;
@@ -205,12 +215,23 @@ namespace NftIndexer.Repositories
         {
             try
             {
+                if (uri.StartsWith("data"))
+                {
+                    return new Tuple<string, bool>(string.Empty, true);
+                }
+
+
+
                 using (HttpClient client = new HttpClient())
                 {
                     client.Timeout = TimeSpan.FromSeconds(2);
                     string url = uri.Replace("ipfs://", _ipfsGateway);
                     var responseMessage = await client.GetAsync(url);
 
+                    if (!url.StartsWith("http"))
+                    {
+                        return new Tuple<string, bool>("bad url format", false);
+                    }
 
                     if (responseMessage.IsSuccessStatusCode)
                     {
