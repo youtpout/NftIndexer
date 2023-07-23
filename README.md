@@ -10,6 +10,8 @@ In the appsettings replace BlockchainDatabase, RpcUrl,IpfsGateway by your own.
 
 Or you can create appsettings.Development.json with your own env to launch in local
 
+### The React app is in ClientApp folder
+
 
 ## Launch
 
@@ -18,6 +20,12 @@ Or you can create appsettings.Development.json with your own env to launch in lo
 launch project in local
 
 ```dotnet run```
+
+## Stack
+
+Asp.Net Core 7/EF core/PostgresSQL/React.js
+
+Nethereum/Metamask SDK/Infura
 
 
 ## Scaffold database
