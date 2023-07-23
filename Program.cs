@@ -12,7 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 
-builder.Services.AddScoped<IContractRepository,ContractRepository>();
+builder.Services.AddScoped<IContractRepository, ContractRepository>();
 builder.Services.AddScoped<IRepositoryBase<Token>, RepositoryBase<Token>>();
 builder.Services.AddScoped<IRepositoryBase<TokenHistory>, RepositoryBase<TokenHistory>>();
 builder.Services.AddScoped<ISyncRepository, SyncRepository>();
@@ -80,6 +80,12 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+app.UseCors(x => x
+                 .AllowAnyMethod()
+                 .AllowAnyHeader()
+                 .SetIsOriginAllowed(origin => true) // allow any origin              
+                 .AllowCredentials()); // allow credentials
 
 
 app.MapControllerRoute(
