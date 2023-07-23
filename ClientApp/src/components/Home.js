@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MetaMaskSDK } from '@metamask/sdk';
+import ReactPaginate from 'react-paginate';
 
 const Home = () => {
 
@@ -46,6 +47,9 @@ const Home = () => {
         }
     }
 
+    const handlePageClick = (ev) => {
+        console.log(ev);
+    };
 
     return (
         <div>
@@ -69,6 +73,17 @@ const Home = () => {
                     </div>)}
                 {nfts?.total === 0 && <div>No nft founds for these criterias</div>}
             </div>
+            {/*{nfts?.total > 10 && <div className="page">*/}
+            {/*    <ReactPaginate*/}
+            {/*        breakLabel="..."*/}
+            {/*        nextLabel="next >"*/}
+            {/*        onPageChange={handlePageClick}*/}
+            {/*        pageRangeDisplayed={5}*/}
+            {/*        pageCount={Math.ceil(nfts.total / 10)}*/}
+            {/*        previousLabel="< previous"*/}
+            {/*        renderOnZeroPageCount={null}*/}
+            {/*    />*/}
+            {/*</div>}*/}
         </div>
     );
 };
@@ -82,7 +97,7 @@ const AsyncImage = (props) => {
             const datas = JSON.parse(props.metadatas);
             console.log("metadatas", datas);
             if (datas.image?.length) {
-                var url = datas.image.replace("ipfs://", "https://ipfs.io/ipfs/");
+                var url = datas.image.replace("ipfs://", "https://event.infura-ipfs.io/ipfs/");
                 setLoadedSrc({ src: url });
 
             }
@@ -93,7 +108,7 @@ const AsyncImage = (props) => {
             <img  {...loadedSrc} />
         );
     }
-    return <img />;
+    return <img src="/loading.gif" />;
 };
 
 const MetaDescription = (props) => {
