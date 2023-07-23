@@ -1,4 +1,4 @@
-import React, {  useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MetaMaskSDK } from '@metamask/sdk';
 
 const Home = () => {
@@ -67,7 +67,7 @@ const Home = () => {
                         <MetaDescription {...nft} />
 
                     </div>)}
-                { nfts?.total === 0 && <div>No nft founds for these criterias</div> }
+                {nfts?.total === 0 && <div>No nft founds for these criterias</div>}
             </div>
         </div>
     );
@@ -90,10 +90,10 @@ const AsyncImage = (props) => {
     }, [props.metadatas]);
     if (loadedSrc) {
         return (
-            <img alt="image-loaded" {...loadedSrc} />
+            <img  {...loadedSrc} />
         );
     }
-    return <img alt="no-image" />;
+    return <img />;
 };
 
 const MetaDescription = (props) => {
