@@ -64,7 +64,7 @@ namespace NftIndexer.Services
                         From = z.From,
                         To = z.To,
                         EventType = z.EventType,
-                        Uri = z.EventType,
+                        Uri = z.Uri,
                         BlockNumber = z.BlockNumber,
                         BlockHash = z.BlockHash,
                         TransactionHash = z.TransactionHash,

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 using System.Net.Http;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -155,12 +156,19 @@ namespace NftIndexer.Repositories
 
                     var metadata = await GetMetadata(uri);
                     // dont save utf8 null
-                    if (metadata.Item2 && !metadata.Item1.Contains("\u0000"))
+                    if (metadata.Item2)
                     {
+                        if (metadata.Item1.Contains("\u0000"))
+                        {
+                            history.Error = "Invalid metadata format";
+                        }
+                        else
+                        {
 
-                        // we store only on token table for the moment
-                        //history.Metadatas = metadata.Item1;
-                        findToken.Metadatas = metadata.Item1;
+                            // we store only on token table for the moment
+                            //history.Metadatas = metadata.Item1;
+                            findToken.Metadatas = metadata.Item1;
+                        }
                     }
                     else
                     {
@@ -236,7 +244,11 @@ namespace NftIndexer.Repositories
                     if (responseMessage.IsSuccessStatusCode)
                     {
                         var responseContent = await responseMessage.Content.ReadAsStringAsync();
-                        return new Tuple<string, bool>(responseContent, true);
+                        if (IsJson(responseContent) || responseContent.StartsWith("data"))
+                        {
+                            return new Tuple<string, bool>(responseContent, true);
+                        }
+                        return new Tuple<string, bool>("bad metadata format", false);
                     }
                     else
                     {
@@ -252,6 +264,23 @@ namespace NftIndexer.Repositories
             }
 
 
+        }
+
+        private bool IsJson(string jsonString)
+        {
+            try
+            {
+                var tmpObj = JsonValue.Parse(jsonString);
+            }
+            catch (FormatException fex)
+            {
+                return false;
+            }
+            catch (Exception ex) //some other exception
+            {
+                return false;
+            }
+            return true;
         }
 
     }
