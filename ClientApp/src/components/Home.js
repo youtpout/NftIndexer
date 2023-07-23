@@ -1,8 +1,15 @@
 import React, { Component, useState, useEffect } from 'react';
+import { MetaMaskSDK } from '@metamask/sdk';
 
 const Home = () => {
 
     const [nfts, setNfts] = useState([]);
+    const [owner, setOwner] = useState("");
+
+    const options = {
+        injectProvider: true
+    };
+    const MMSDK = new MetaMaskSDK(options);
 
     useEffect(() => {
 
@@ -10,24 +17,41 @@ const Home = () => {
 
     }, []);
 
+    useEffect(() => {
+
+        filterByOwner(owner).then();
+
+    }, [owner]);
+
     const getNft = async () => {
         const response = await fetch("/api/nft");
         const datas = await response.json();
         setNfts(datas);
     };
 
-    const filterByOwner = async (event) => {
-        const address = event.target.value;
+    const filterByOwner = async (address) => {
         const response = await fetch("/api/nft/GetWithParameter?owner=" + address);
         const datas = await response.json();
         setNfts(datas);
     };
 
+    const connect = async () => {
+        const ethereum = MMSDK.getProvider();
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts', params: [] });
+        console.log("accounts", accounts);
+        if (accounts?.length && accounts[0]?.length) {
+            setOwner(accounts[0]);
+        } else {
+            setOwner("");
+        }
+    }
+
 
     return (
         <div>
             <div className="filter"> <span>Filter by owner : </span>
-                <input onChange={ev => filterByOwner(ev)} type="text" placeholder="owner"></input>
+                <input onChange={ev => setOwner(ev.target.value)} value={owner} type="text" placeholder="owner"></input>
+                <button onClick={connect}>Connect Metamask</button>
             </div>
             <div className="home">
                 {nfts?.tokens?.map((nft, index) =>
@@ -43,6 +67,7 @@ const Home = () => {
                         <MetaDescription {...nft} />
 
                     </div>)}
+                { nfts?.total === 0 && <div>No nft founds for these criterias</div> }
             </div>
         </div>
     );
@@ -68,7 +93,7 @@ const AsyncImage = (props) => {
             <img  {...loadedSrc} />
         );
     }
-    return null;
+    return <img   />;
 };
 
 const MetaDescription = (props) => {

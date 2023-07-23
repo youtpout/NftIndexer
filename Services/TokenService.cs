@@ -29,7 +29,8 @@ namespace NftIndexer.Services
                 skip = 0;
             }
 
-            IQueryable<Token> filter = _dbContext.Tokens.Include(x => x.Contract).Include(x => x.TokenHistories).OrderByDescending(x => x.Id);
+            IQueryable<Token> filter = _dbContext.Tokens.Include(x => x.Contract).Include(x => x.TokenHistories)
+                .OrderByDescending(x => x.Id).Where(x => x != null && x.Contract != null && x.TokenHistories.Any()); ;
 
             if (!string.IsNullOrWhiteSpace(address))
             {
@@ -54,7 +55,7 @@ namespace NftIndexer.Services
                     Address = x.Contract.Address,
                     ContractType = x.Contract.ContractType,
                     Metadatas = x.Metadatas,
-                    Owner = x.TokenHistories.OrderByDescending(x => x.BlockNumber).ThenByDescending(x => x.TransactionIndex).First().To ?? string.Empty,
+                    Owner = x.TokenHistories.Where(x => x != null).OrderByDescending(x => x.BlockNumber).ThenByDescending(x => x.TransactionIndex).First().To ?? string.Empty,
                     TokenId = x.TokenId,
                     Uri = x.Uri,
                     TokenHistories = !history ? new List<TokenHistoryDto>() : x.TokenHistories.Select(z => new TokenHistoryDto()
