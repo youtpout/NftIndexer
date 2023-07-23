@@ -31,7 +31,8 @@ const Home = () => {
     };
 
     const filterByOwner = async (address) => {
-        const response = await fetch("/api/nft/GetWithParameter?owner=" + address);
+        const own = address?.trim();
+        const response = await fetch("/api/nft/GetWithParameter?owner=" + own);
         const datas = await response.json();
         setNfts(datas);
     };
