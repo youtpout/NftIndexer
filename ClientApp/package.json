@@ -60,11 +60,7 @@
     "eject": "react-scripts eject",
     "lint": "eslint ./src/"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
-  },
+
   "browserslist": {
     "production": [
       ">0.2%",

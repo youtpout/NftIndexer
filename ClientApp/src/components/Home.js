@@ -1,4 +1,4 @@
-import React, { Component, useState, useEffect } from 'react';
+import React, {  useState, useEffect } from 'react';
 import { MetaMaskSDK } from '@metamask/sdk';
 
 const Home = () => {
@@ -90,10 +90,10 @@ const AsyncImage = (props) => {
     }, [props.metadatas]);
     if (loadedSrc) {
         return (
-            <img  {...loadedSrc} />
+            <img alt="image-loaded" {...loadedSrc} />
         );
     }
-    return <img   />;
+    return <img alt="no-image" />;
 };
 
 const MetaDescription = (props) => {
